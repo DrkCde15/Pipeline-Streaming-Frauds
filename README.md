@@ -159,12 +159,11 @@ Status v0.1: `tests/` contém só `__init__.py`. Validação atual é manual via
 
 ## Roadmap v0.2
 
-- [ ] Testes: `Transacao.from_creditcard_row`, roundtrip Kafka, regras
-- [ ] `.env.example` + `docker-compose` (Kafka, Postgres, Grafana)
-- [ ] Writer Postgres no consumer + producer `fraud-alerts`
-- [ ] Exporter Prometheus ou ajuste do dashboard para Postgres
-- [ ] Migrar notebook para o CSV real
-- [x] Enxugar `requirements.txt` (core só com kafka/pandas/numpy/sklearn/psycopg2; dev em `requirements-dev.txt`)
+- [x] Testes: `Transacao.from_creditcard_row`, roundtrip Kafka, regras (`pytest tests/ -q` → 16 verdes)
+- [x] `.env.example` + `docker-compose` (Kafka, Postgres, Grafana)
+- [x] Writer Postgres no consumer + producer `fraud-alerts`
+- [x] Exporter Prometheus ou ajuste do dashboard para Postgres
+- [x] Migrar notebook para o CSV real
 
 ## Licença
 

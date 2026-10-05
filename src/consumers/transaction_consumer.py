@@ -16,10 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 class TransactionConsumer:
-    """Consumer de transações com processamento básico."""
-    
-    def __init__(self) -> None:
-        """Inicializa o consumer Kafka."""
+    """Consumer de transações com validação, regras, Postgres e fraud-alerts."""
+
+    def __init__(self, persist: bool = True) -> None:
+        """Inicializa o consumer Kafka.
+
+        Args:
+            persist: salva em Postgres e publica fraud-alerts (desliga p/ demo sem DB)
+        """
         self.consumer = KafkaConsumer(
             KAFKA_CONFIG.topic_transactions,
             bootstrap_servers=KAFKA_CONFIG.bootstrap_servers_str,
@@ -32,6 +36,15 @@ class TransactionConsumer:
         )
         self.transacoes_processadas: list[dict[str, Any]] = []
         self.transacoes_fraudulentas: list[dict[str, Any]] = []
+        self.persist = persist
+        self._pg = None
+        self._alert_producer = None
+        self._persistidas = 0
+        self._alertas = 0
+        # RuleEngine com estado (histórico por user p/ velocidade/geográfico)
+        from src.detectors.rule_engine import RuleEngine
+
+        self.rules = RuleEngine()
     
     def processar_transacao(self, transacao: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Processa uma transação individual.
@@ -101,8 +114,17 @@ class TransactionConsumer:
                 
                 if transacao_processada:
                     self.transacoes_processadas.append(transacao_processada)
-                    
-                    # Verifica se é fraudulenta
+
+                    # 1) Persiste no Postgres (idempotente, nunca quebra o stream)
+                    if self.persist:
+                        self._salvar_no_banco(transacao_processada)
+
+                    # 2) Score via RuleEngine -> alerta em fraud-alerts + fraud_alerts
+                    alerta = self._checar_regras(transacao_processada)
+                    if alerta and self.persist:
+                        self._publicar_alerta(transacao_processada, alerta)
+
+                    # Label original (ground truth do CSV) só p/ estatística
                     if transacao_processada["is_fraud"]:
                         self.transacoes_fraudulentas.append(transacao_processada)
                         logger.warning(
@@ -116,7 +138,14 @@ class TransactionConsumer:
                         )
                 
                 contador += 1
-                
+
+                # Commit manual: sem isso (auto_commit=False) cada restart
+                # relê do início e nunca avança no log.
+                try:
+                    self.consumer.commit()
+                except Exception:
+                    pass
+
                 if max_transacoes and contador >= max_transacoes:
                     break
         
@@ -127,6 +156,64 @@ class TransactionConsumer:
         finally:
             self._finalizar()
     
+    def _pg_conn(self):
+        """Conexão lazy (só conecta se persist=True e DB acessível)."""
+        if self._pg is None:
+            from src.storage.postgres_writer import get_conn
+
+            self._pg = get_conn()
+        return self._pg
+
+    def _salvar_no_banco(self, tx: dict[str, Any]) -> None:
+        try:
+            from src.storage.postgres_writer import salvar_transacao
+
+            if salvar_transacao(self._pg_conn(), tx):
+                self._persistidas += 1
+        except Exception as e:
+            logger.warning(f"Postgres indisponível, seguindo sem persistir: {e}")
+            self._pg = None
+
+    def _checar_regras(self, tx: dict[str, Any]):
+        try:
+            return self.rules.verificar_transacao(tx)
+        except Exception as e:
+            logger.warning(f"RuleEngine falhou p/ {tx['transaction_id'][:8]}: {e}")
+            return None
+
+    def _publicar_alerta(self, tx: dict[str, Any], alerta) -> None:
+        try:
+            import json as _json
+
+            from kafka import KafkaProducer
+
+            from src.storage.postgres_writer import salvar_alerta
+
+            salvar_alerta(
+                self._pg_conn(),
+                tx["transaction_id"],
+                list(alerta.regras_ativadas),
+                float(alerta.score),
+            )
+            if self._alert_producer is None:
+                self._alert_producer = KafkaProducer(
+                    bootstrap_servers=KAFKA_CONFIG.bootstrap_servers_str,
+                    value_serializer=lambda v: _json.dumps(v).encode("utf-8"),
+                )
+            self._alert_producer.send(
+                KAFKA_CONFIG.topic_fraud_alerts,
+                value={
+                    "transaction_id": tx["transaction_id"],
+                    "regras": list(alerta.regras_ativadas),
+                    "score": float(alerta.score),
+                    "valor": float(tx["valor"]),
+                },
+            )
+            self._alertas += 1
+        except Exception as e:
+            logger.warning(f"Alerta não persistido/publicado: {e}")
+            self._pg = None
+
     def _finalizar(self) -> None:
         """Finaliza o consumer e imprime estatísticas."""
         total = len(self.transacoes_processadas)
@@ -138,7 +225,22 @@ class TransactionConsumer:
         logger.info(f"   Total processadas: {total}")
         logger.info(f"   Fraudulentas: {fraudes}")
         logger.info(f"   Taxa de fraude: {taxa_fraude:.2f}%")
+        if self.persist:
+            logger.info(f"   Persistidas Postgres: {self._persistidas}")
+            logger.info(f"   Alertas (regras): {self._alertas}")
         logger.info("=" * 50)
+
+        try:
+            if self._alert_producer is not None:
+                self._alert_producer.flush()
+                self._alert_producer.close()
+        except Exception:
+            pass
+        try:
+            if self._pg is not None:
+                self._pg.close()
+        except Exception:
+            pass
         
         self.consumer.close()
         logger.info("✅ Consumer finalizado.")
