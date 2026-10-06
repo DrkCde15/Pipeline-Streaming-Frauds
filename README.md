@@ -185,6 +185,16 @@ Status: 26 testes (`pytest tests/ -q`), incluindo integração Postgres (pula so
 - [x] Exporter Prometheus ou ajuste do dashboard para Postgres
 - [x] Migrar notebook para o CSV real
 - [x] R2: ML v2 no serving com fallback p/ regras (`scripts/train_ml.py` + `decidir_alerta`)
+- [x] R1/R3/R4/R7/R11 da revisão: IDs determinísticos, UTC aware, dev-deps, limiar de score
+
+## Roadmap v0.3
+
+- [ ] R6: tabela `raw_creditcard` (bronze imutável) para reprocessamento bit-a-bit
+- [ ] R8: `requirements.lock` + CI mínimo (`pytest -q` a cada push)
+- [ ] R10: painel de frescor no Grafana (`MAX(timestamp)` das tabelas)
+- [ ] R9: decidir time-shift no replay vs janela dupla 2013/tempo-real
+- [ ] Lint/format (ruff ou black) + `pre-commit`
+- [x] Check de qualidade no Postgres (`scripts/check_quality.py`: nulos, duplicadas, drift, taxa, órfãos)
 
 ## Licença
 
