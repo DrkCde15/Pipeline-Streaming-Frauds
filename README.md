@@ -1,6 +1,6 @@
 # Streaming + Fraud Detection
 
-Sistema de detecção de fraudes em transações financeiras com Apache Kafka, regras de domínio e Machine Learning. v0.1 usa o dataset real ULB/Worldline (creditcard.csv) com schema unificado para streaming, treino e Postgres.
+Sistema de detecção de fraudes em transações financeiras com streaming Kafka, regras de domínio com limiar de score e Machine Learning (RandomForest) no dataset real ULB/Worldline (`creditcard.csv`: 284.807 transações, 492 fraudes). Schema unificado para replay, treino e Postgres; consumer persiste com writer idempotente, publica `fraud-alerts` e combina regras + ML com fallback automático; Grafana com SQL direto no banco, 33 testes verdes e checks de qualidade com saída para CI.
 
 ## Visão Geral
 
@@ -9,11 +9,10 @@ Pipeline:
 ```
 [creditcard.csv / gerador sintético]
   -> [Transaction Producer] -> [Kafka: transactions]
-  -> [Transaction Consumer (valida schema)]
-  -> [RuleEngine + MLDetector v2] -> [PostgreSQL] -> [Grafana*]
+  -> [Transaction Consumer (schema + regras + ML v2)]
+  -> [PostgreSQL (transactions + fraud_alerts) + Kafka: fraud-alerts]
+  -> [Grafana via SQL + checks via scripts/check_quality.py]
 ```
-
-`*` Dashboard em `grafana/dashboard.json` espera métricas Prometheus (`transactions_total`, `fraud_alerts_total`). Exporter ainda não implementado na v0.1.
 
 ## Schema Unificado
 
@@ -53,15 +52,19 @@ Fonte: https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
 
 ## Instalação
 
-Requer Python 3.11+ e Kafka acessível (padrão `localhost:9092`).
+Requer Python 3.11+ e Podman com compose (Kafka `localhost:9092` por padrão).
 
 ```bash
+cp .env.example .env
+podman compose up -d
+
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -r requirements-dev.txt   # testes, notebook, lint
 ```
 
-Config Kafka em `config/kafka_config.py` (`bootstrap_servers, topic_transactions=transactions, topic_fraud_alerts=fraud-alerts, group_id`). Sem `.env` na v0.1.
+Config em `config/kafka_config.py` (`KAFKA_BOOTSTRAP`, tópicos, group) e `config/db_config.py` (`POSTGRES_DSN`) — tudo via `.env` com defaults locais.
 
 ## Uso
 
@@ -147,39 +150,47 @@ O consumer carrega o artefato no boot; sem ele, treina sozinho (lento, uma vez) 
 
 ### Tópicos Kafka
 
-- `transactions` - transações no schema unificado
-- `fraud-alerts` - reservado (producer de alertas ainda não implementado na v0.1)
+- `transactions` - transações no schema unificado (IDs determinísticos no replay)
+- `fraud-alerts` - alertas (regras e/ou ML) publicados pelo consumer
+
+### Dashboard
+
+`http://localhost:3000` (admin/admin). Na primeira vez: Connections → PostgreSQL → Host `postgres:5432`, Database `frauddb`, User `fraud`, senha do `.env`, SSL `disable` → Save & Test. Depois Dashboards → Import → `grafana/dashboard.json` → seleciona o datasource em `DS_POSTGRES`. Se der No Data, confere o time picker (dado do CSV é de set/2013).
 
 ## Estrutura
 
 ```
 config/kafka_config.py       # lê KAFKA_* do .env
 config/db_config.py          # POSTGRES_DSN
-src/schemas/transaction.py   # schema canônico + IDs determinísticos
+src/schemas/transaction.py   # schema canônico + IDs determinísticos + UTC aware
 src/producers/               # sintético + enviar_csv()
 src/consumers/               # validação + regras + ML v2 + Postgres + fraud-alerts
-src/detectors/rule_engine.py # 5 regras + decidir_alerta()
+src/detectors/rule_engine.py # 5 regras + decidir_alerta() + limiar de score
 src/detectors/ml_detector.py # v1 sintético + v2 real (salvar/carregar)
 src/storage/                 # writer Postgres idempotente
 scripts/train_ml.py          # gera models/fraud_rf_v2.pkl
+scripts/check_quality.py     # 6 checks (exit 1 em FAIL, limiares via DQ_*)
 db/schema.sql
 data/raw/                    # creditcard.csv (gitignored)
-grafana/dashboard.json       # SQL direto no Postgres
+grafana/dashboard.json       # SQL direto no Postgres (+ Saúde dos Dados)
 notebooks/01_analise_fraudes.ipynb  # EDA no CSV real
-tests/                       # 26 testes (pytest -q)
+tests/                       # 33 testes (pytest -q)
+docs/revisao-engenharia-dados.md     # revisão estruturada do projeto
 ```
 
 ## Testes
 
 ```bash
 pytest tests/ -q
+python scripts/check_quality.py   # contra o Postgres do compose
+ruff check config src tests scripts && ruff format --check config src tests scripts
 ```
 
-Status: 26 testes (`pytest tests/ -q`), incluindo integração Postgres (pula sozinho sem DB).
+Status: 33 testes (inclui integração Postgres, que pula sozinha sem DB) + 6 checks de qualidade.
 
 ## Roadmap v0.2
 
-- [x] Testes: `Transacao.from_creditcard_row`, roundtrip Kafka, regras (`pytest tests/ -q` → 16 verdes)
+- [x] Testes: `Transacao.from_creditcard_row`, roundtrip, regras, ML serving, quality (33 verdes)
 - [x] `.env.example` + `docker-compose` (Kafka, Postgres, Grafana)
 - [x] Writer Postgres no consumer + producer `fraud-alerts`
 - [x] Exporter Prometheus ou ajuste do dashboard para Postgres
