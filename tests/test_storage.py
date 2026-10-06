@@ -30,6 +30,7 @@ def test_integracao_banco():
             salvar_alerta,
             salvar_transacao,
         )
+
         conn = get_conn()
     except Exception as e:
         pytest.skip(f"Postgres indisponível: {e}")
@@ -43,13 +44,11 @@ def test_integracao_banco():
         with conn.cursor() as cur:
             cur.execute(
                 "DELETE FROM fraud_alerts WHERE transaction_id = %s",
-                (Transacao.from_creditcard_row(linha_csv(), idx=999)
-                 .to_dict()["transaction_id"],),
+                (Transacao.from_creditcard_row(linha_csv(), idx=999).to_dict()["transaction_id"],),
             )
             cur.execute(
                 "DELETE FROM transactions WHERE transaction_id = %s",
-                (Transacao.from_creditcard_row(linha_csv(), idx=999)
-                 .to_dict()["transaction_id"],),
+                (Transacao.from_creditcard_row(linha_csv(), idx=999).to_dict()["transaction_id"],),
             )
         conn.commit()
         conn.close()

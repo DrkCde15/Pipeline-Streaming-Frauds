@@ -191,9 +191,9 @@ Status: 26 testes (`pytest tests/ -q`), incluindo integração Postgres (pula so
 
 - [ ] R6: tabela `raw_creditcard` (bronze imutável) para reprocessamento bit-a-bit
 - [ ] R8: `requirements.lock` + CI mínimo (`pytest -q` a cada push)
-- [ ] R10: painel de frescor no Grafana (`MAX(timestamp)` das tabelas)
+- [x] R10: painel de frescor no Grafana (`MAX(timestamp)` das tabelas)
 - [ ] R9: decidir time-shift no replay vs janela dupla 2013/tempo-real
-- [ ] Lint/format (ruff ou black) + `pre-commit`
+- [x] Lint/format (ruff ou black) + `pre-commit`
 - [x] Check de qualidade no Postgres (`scripts/check_quality.py`: nulos, duplicadas, drift, taxa, órfãos)
 
 ## Licença

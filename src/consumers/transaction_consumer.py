@@ -2,14 +2,13 @@
 
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from kafka import KafkaConsumer
 from kafka.errors import KafkaError
 
 from config.kafka_config import KAFKA_CONFIG
-
 from src.schemas.transaction import Transacao
 
 logging.basicConfig(level=logging.INFO)
@@ -54,13 +53,13 @@ class TransactionConsumer:
 
         self.rules = RuleEngine()
         self._ml = self._init_ml(model_path) if ml else None
-    
-    def processar_transacao(self, transacao: dict[str, Any]) -> Optional[dict[str, Any]]:
+
+    def processar_transacao(self, transacao: dict[str, Any]) -> dict[str, Any] | None:
         """Processa uma transação individual.
-        
+
         Args:
             transacao: Dados da transação
-            
+
         Returns:
             Transação processada ou None se inválida
         """
@@ -89,7 +88,7 @@ class TransactionConsumer:
             "source": d.get("source", "synthetic"),
             "time_original": d.get("time_original"),
             "v_features": d.get("v_features"),
-            "processed_at": datetime.now(timezone.utc).isoformat(),
+            "processed_at": datetime.now(UTC).isoformat(),
         }
         # Mantém V1..V28 achatadas se existirem (compat Postgres)
         for i in range(1, 29):
@@ -97,10 +96,10 @@ class TransactionConsumer:
                 transacao_processada[f"V{i}"] = d[f"V{i}"]
 
         return transacao_processada
-    
-    def executar(self, max_transacoes: Optional[int] = None) -> None:
+
+    def executar(self, max_transacoes: int | None = None) -> None:
         """Executa o consumer.
-        
+
         Args:
             max_transacoes: Limite máximo de transações (None = infinito)
         """
@@ -108,19 +107,19 @@ class TransactionConsumer:
         logger.info(f"📡 Kafka: {KAFKA_CONFIG.bootstrap_servers_str}")
         logger.info(f"📋 Tópico: {KAFKA_CONFIG.topic_transactions}")
         logger.info(f"👥 Group ID: {KAFKA_CONFIG.group_id}")
-        
+
         contador = 0
-        
+
         try:
             for mensagem in self.consumer:
                 transacao = mensagem.value
-                
+
                 if transacao is None:
                     continue
-                
+
                 # Processa a transação
                 transacao_processada = self.processar_transacao(transacao)
-                
+
                 if transacao_processada:
                     self.transacoes_processadas.append(transacao_processada)
 
@@ -134,15 +133,11 @@ class TransactionConsumer:
 
                     alerta_rules = self._checar_regras(transacao_processada)
                     ml_prob = self._checar_ml(transacao_processada)
-                    regras = (
-                        list(alerta_rules.regras_ativadas) if alerta_rules else []
-                    )
+                    regras = list(alerta_rules.regras_ativadas) if alerta_rules else []
                     score_rules = float(alerta_rules.score) if alerta_rules else 0.0
                     dispara, score = decidir_alerta(regras, score_rules, ml_prob)
                     if dispara and self.persist:
-                        self._publicar_alerta(
-                            transacao_processada, regras, score, ml_prob
-                        )
+                        self._publicar_alerta(transacao_processada, regras, score, ml_prob)
 
                     # Label original (ground truth do CSV) só p/ estatística
                     if transacao_processada["is_fraud"]:
@@ -156,7 +151,7 @@ class TransactionConsumer:
                             f"✅ Transação OK | ID: {transacao_processada['transaction_id'][:8]} | "
                             f"Valor: R$ {transacao_processada['valor']:.2f}"
                         )
-                
+
                 contador += 1
 
                 # Commit manual: sem isso (auto_commit=False) cada restart
@@ -168,14 +163,14 @@ class TransactionConsumer:
 
                 if max_transacoes and contador >= max_transacoes:
                     break
-        
+
         except KeyboardInterrupt:
             logger.info("⏹️  Consumer interrompido pelo usuário")
         except KafkaError as e:
             logger.error(f"Erro Kafka: {e}")
         finally:
             self._finalizar()
-    
+
     def _pg_conn(self):
         """Conexão lazy (só conecta se persist=True e DB acessível)."""
         if self._pg is None:
@@ -233,7 +228,7 @@ class TransactionConsumer:
             logger.warning(f"ML indisponível, seguindo só com regras: {e}")
             return None
 
-    def _checar_ml(self, tx: dict[str, Any]) -> Optional[float]:
+    def _checar_ml(self, tx: dict[str, Any]) -> float | None:
         """Retorna P(fraude) do ML ou None. Falha => desabilita p/ o resto do run."""
         if self._ml is None:
             return None
@@ -249,7 +244,7 @@ class TransactionConsumer:
         tx: dict[str, Any],
         regras: list[str],
         score: float,
-        ml_prob: Optional[float] = None,
+        ml_prob: float | None = None,
     ) -> None:
         try:
             import json as _json
@@ -290,7 +285,7 @@ class TransactionConsumer:
         total = len(self.transacoes_processadas)
         fraudes = len(self.transacoes_fraudulentas)
         taxa_fraude = (fraudes / total * 100) if total > 0 else 0
-        
+
         logger.info("=" * 50)
         logger.info("📊 ESTATÍSTICAS FINAIS")
         logger.info(f"   Total processadas: {total}")
@@ -313,10 +308,10 @@ class TransactionConsumer:
                 self._pg.close()
         except Exception:
             pass
-        
+
         self.consumer.close()
         logger.info("✅ Consumer finalizado.")
-    
+
     def obter_fraudulentas(self) -> list[dict[str, Any]]:
         """Retorna lista de transações fraudulentas detectadas."""
         return self.transacoes_fraudulentas.copy()

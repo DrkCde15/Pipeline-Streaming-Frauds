@@ -3,16 +3,14 @@
 import json
 import random
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
 
 from config.kafka_config import KAFKA_CONFIG
-
 from src.schemas.transaction import Transacao
-
 
 # Cidades e países simulados
 CIDADES = [
@@ -36,21 +34,29 @@ CIDADES = [
 DISPOSITIVOS = ["mobile", "desktop", "tablet", "pos", "atm"]
 
 CATEGORIAS = [
-    "alimentacao", "transporte", "saude", "educacao", "lazer",
-    "compras", "servicos", "transferencia", "saque", "deposito"
+    "alimentacao",
+    "transporte",
+    "saude",
+    "educacao",
+    "lazer",
+    "compras",
+    "servicos",
+    "transferencia",
+    "saque",
+    "deposito",
 ]
 
 
 def gerar_transacao_fraudulenta() -> dict[str, Any]:
     """Gera uma transação com características fraudulentas."""
     local = random.choice(CIDADES[:10])  # Apenas Brasil para fraudes
-    
+
     return {
         "transaction_id": str(uuid.uuid4()),
         "user_id": random.randint(1, 1000),
         "valor": round(random.uniform(5000, 50000), 2),
         "moeda": "BRL",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "localizacao": {
             "cidade": local["cidade"],
             "pais": local["pais"],
@@ -66,13 +72,13 @@ def gerar_transacao_fraudulenta() -> dict[str, Any]:
 def gerar_transacao_normal() -> dict[str, Any]:
     """Gera uma transação legítima."""
     local = random.choice(CIDADES)
-    
+
     return {
         "transaction_id": str(uuid.uuid4()),
         "user_id": random.randint(1, 1000),
         "valor": round(random.uniform(10, 2000), 2),
         "moeda": "BRL",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "localizacao": {
             "cidade": local["cidade"],
             "pais": local["pais"],
@@ -102,23 +108,23 @@ def enviar_transacoes(
     taxa_fraude: float = 0.1,
 ) -> None:
     """Envia transações para o tópico Kafka.
-    
+
     Args:
         producer: Produtor Kafka
         num_transacoes: Número total de transações
         taxa_fraude: Proporção de transações fraudulentas (0-1)
     """
     topic = KAFKA_CONFIG.topic_transactions
-    
+
     for i in range(num_transacoes):
         # Decide se é fraude
         is_fraud = random.random() < taxa_fraude
-        
+
         if is_fraud:
             transacao = gerar_transacao_fraudulenta()
         else:
             transacao = gerar_transacao_normal()
-        
+
         try:
             future = producer.send(
                 topic=topic,
@@ -126,18 +132,18 @@ def enviar_transacoes(
                 value=transacao,
             )
             record_metadata = future.get(timeout=10)
-            
+
             status = "FRAUDE" if is_fraud else "Normal"
             print(
-                f"[{i+1}/{num_transacoes}] {status} | "
+                f"[{i + 1}/{num_transacoes}] {status} | "
                 f"ID: {transacao['transaction_id'][:8]} | "
                 f"Valor: R$ {transacao['valor']:.2f} | "
                 f"Topic: {record_metadata.topic}"
             )
-            
+
         except KafkaError as e:
             print(f"Erro ao enviar transação: {e}")
-    
+
     producer.flush()
     print(f"\nTotal de transações enviadas: {num_transacoes}")
 
@@ -170,7 +176,7 @@ def enviar_csv(
                 )
                 future.get(timeout=10)
                 if (i + 1) % 200 == 0:
-                    print(f"[{i+1}] replay CSV... último valor R$ {tx.valor:.2f}")
+                    print(f"[{i + 1}] replay CSV... último valor R$ {tx.valor:.2f}")
             except KafkaError as e:
                 print(f"Erro ao enviar linha {i}: {e}")
 
@@ -183,9 +189,9 @@ def main() -> None:
     print("🚀 Iniciando Producer de Transações...")
     print(f"📡 Kafka: {KAFKA_CONFIG.bootstrap_servers_str}")
     print(f"📋 Tópico: {KAFKA_CONFIG.topic_transactions}")
-    
+
     producer = criar_producer()
-    
+
     try:
         enviar_transacoes(
             producer=producer,

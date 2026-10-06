@@ -60,8 +60,7 @@ def test_artefato_v2_roundtrip(tmp_path):
     recarregado._carregar_modelo(pkl)
     assert recarregado.modelo_v2 is not None
 
-    tx = {"transaction_id": "t", "valor": 10.0, "time_original": 1.0,
-          "v_features": [0.0] * 30}
+    tx = {"transaction_id": "t", "valor": 10.0, "time_original": 1.0, "v_features": [0.0] * 30}
     tx["v_features"] = [5.0] + [0.0] * 27  # força classe 1 no treino mini
     r = recarregado.prever_v2(tx)
     assert 0.0 <= r["probabilidade_fraude"] <= 1.0

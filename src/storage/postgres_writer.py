@@ -11,13 +11,21 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_TX_COLS = (
-    ["transaction_id", "user_id", "valor", "timestamp",
-     "cidade", "pais", "latitude", "longitude",
-     "dispositivo", "categoria", "is_fraud", "source",
-     "time_original"]
-    + [f"V{i}" for i in range(1, 29)]
-)
+_TX_COLS = [
+    "transaction_id",
+    "user_id",
+    "valor",
+    "timestamp",
+    "cidade",
+    "pais",
+    "latitude",
+    "longitude",
+    "dispositivo",
+    "categoria",
+    "is_fraud",
+    "source",
+    "time_original",
+] + [f"V{i}" for i in range(1, 29)]
 
 
 def get_conn():

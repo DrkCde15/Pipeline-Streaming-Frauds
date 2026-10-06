@@ -15,19 +15,27 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 # Base temporal do dataset ULB: 2 dias de setembro/2013.
 # O campo `Time` do CSV são segundos decorridos desde a 1ª transação.
-BASE_TIME_ULB = datetime(2013, 9, 1, 0, 0, 0, tzinfo=timezone.utc)
+BASE_TIME_ULB = datetime(2013, 9, 1, 0, 0, 0, tzinfo=UTC)
 
 V_FEATURES = [f"V{i}" for i in range(1, 29)]  # V1..V28
 
 DISPOSITIVOS_FALLBACK = ["mobile", "desktop", "tablet", "pos", "atm"]
 CATEGORIAS_FALLBACK = [
-    "alimentacao", "transporte", "saude", "educacao", "lazer",
-    "compras", "servicos", "transferencia", "saque", "deposito",
+    "alimentacao",
+    "transporte",
+    "saude",
+    "educacao",
+    "lazer",
+    "compras",
+    "servicos",
+    "transferencia",
+    "saque",
+    "deposito",
 ]
 
 
@@ -39,7 +47,7 @@ def normalizar_timestamp(ts: str) -> str:
     """
     dt = datetime.fromisoformat(ts)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.isoformat()
 
 
@@ -87,7 +95,7 @@ class Transacao:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Transacao":
+    def from_dict(cls, d: dict[str, Any]) -> Transacao:
         """Desserializa (Kafka consumer / DB row). Tolera ambos formatos."""
         loc = d.get("localizacao", {}) or {}
         localizacao = Localizacao(
@@ -125,7 +133,7 @@ class Transacao:
         row: dict[str, Any],
         idx: int = 0,
         base_time: datetime = BASE_TIME_ULB,
-    ) -> "Transacao":
+    ) -> Transacao:
         """Converte uma linha do creditcard.csv para o schema canônico.
 
         Args:
@@ -140,16 +148,20 @@ class Transacao:
         v_features = [float(row[f"V{i}"]) for i in range(1, 29)]
 
         if base_time.tzinfo is None:
-            base_time = base_time.replace(tzinfo=timezone.utc)
+            base_time = base_time.replace(tzinfo=UTC)
         ts = (base_time + timedelta(seconds=time_sec)).isoformat()
 
         # ID determinístico do conteúdo: re-replay da mesma linha gera o
         # mesmo transaction_id, então o ON CONFLICT do Postgres + o
         # group_id do Kafka deduplicam em vez de inflar counts (R1).
-        chave = "|".join([
-            str(row["Time"]), str(row["Amount"]), str(row["Class"]),
-            *[str(row[f"V{i}"]) for i in range(1, 29)],
-        ])
+        chave = "|".join(
+            [
+                str(row["Time"]),
+                str(row["Amount"]),
+                str(row["Class"]),
+                *[str(row[f"V{i}"]) for i in range(1, 29)],
+            ]
+        )
         tx_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"creditcard_csv:{chave}"))
 
         # CSV não tem user: agrupa de 200 em 200 p/ permitir

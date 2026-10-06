@@ -2,7 +2,7 @@
 
 import pytest
 
-from scripts.check_quality import avaliar_drift, rodar_checks
+from scripts.check_quality import avaliar_drift
 
 
 def test_drift_ok():
@@ -69,14 +69,16 @@ def test_checks_no_banco():
             assert cur.fetchone()[0] == 0
         res = {r.nome: r for r in rodar_checks(conn, 30.0, 5.0)}
         assert set(res) == {
-            "nulos", "duplicadas", "drift_amount",
-            "taxa_fraude", "valores_impossiveis", "alertas_orfaos",
+            "nulos",
+            "duplicadas",
+            "drift_amount",
+            "taxa_fraude",
+            "valores_impossiveis",
+            "alertas_orfaos",
         }
         assert all(r.status in ("OK", "WARN", "FAIL") for r in res.values())
     finally:
         with conn.cursor() as cur:
-            cur.execute(
-                "DELETE FROM transactions WHERE transaction_id = ANY(%s::uuid[])", (ids,)
-            )
+            cur.execute("DELETE FROM transactions WHERE transaction_id = ANY(%s::uuid[])", (ids,))
         conn.commit()
         conn.close()

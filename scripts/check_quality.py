@@ -52,8 +52,7 @@ def rodar_checks(conn, max_drift_pct: float, max_fraud_pct: float) -> list[Resul
             "OR valor IS NULL OR timestamp IS NULL"
         )
         n = cur.fetchone()[0]
-        out.append(Resultado(
-            "nulos", "FAIL" if n else "OK", f"{n} linhas com nulo crítico"))
+        out.append(Resultado("nulos", "FAIL" if n else "OK", f"{n} linhas com nulo crítico"))
 
         # 2. Duplicadas lógicas (mesmo evento natural, IDs diferentes)
         cur.execute(
@@ -62,9 +61,11 @@ def rodar_checks(conn, max_drift_pct: float, max_fraud_pct: float) -> list[Resul
             "GROUP BY 1, 2, 3 HAVING COUNT(*) > 1) d"
         )
         n = cur.fetchone()[0]
-        out.append(Resultado(
-            "duplicadas", "FAIL" if n else "OK",
-            f"{n} grupos (time,valor,user) repetidos"))
+        out.append(
+            Resultado(
+                "duplicadas", "FAIL" if n else "OK", f"{n} grupos (time,valor,user) repetidos"
+            )
+        )
 
         # 3. Drift de Amount na fonte real (dia 1 como baseline vs dia 2).
         # Restrito a creditcard_csv: o sintético usa outra escala e outro
@@ -83,9 +84,13 @@ def rodar_checks(conn, max_drift_pct: float, max_fraud_pct: float) -> list[Resul
         atual = cur.fetchone()[0]
         if base is None or atual is None:
             lado = "dia 1" if base is None else "dia 2"
-            out.append(Resultado(
-                "drift_amount", "WARN",
-                f"sem linhas creditcard_csv no {lado} (replay cobre ~33min do dia 1)"))
+            out.append(
+                Resultado(
+                    "drift_amount",
+                    "WARN",
+                    f"sem linhas creditcard_csv no {lado} (replay cobre ~33min do dia 1)",
+                )
+            )
         else:
             st, det = avaliar_drift(base, atual, max_drift_pct)
             out.append(Resultado("drift_amount", st, det))
@@ -105,9 +110,13 @@ def rodar_checks(conn, max_drift_pct: float, max_fraud_pct: float) -> list[Resul
             "OR timestamp > NOW() + INTERVAL '1 day'"
         )
         n = cur.fetchone()[0]
-        out.append(Resultado(
-            "valores_impossiveis", "FAIL" if n else "OK",
-            f"{n} linhas (valor<0 ou timestamp futuro)"))
+        out.append(
+            Resultado(
+                "valores_impossiveis",
+                "FAIL" if n else "OK",
+                f"{n} linhas (valor<0 ou timestamp futuro)",
+            )
+        )
 
         # 6. Alertas órfãos (FK deveria impedir; confirma)
         cur.execute(
@@ -115,8 +124,7 @@ def rodar_checks(conn, max_drift_pct: float, max_fraud_pct: float) -> list[Resul
             "ON t.transaction_id = fa.transaction_id WHERE t.transaction_id IS NULL"
         )
         n = cur.fetchone()[0]
-        out.append(Resultado(
-            "alertas_orfaos", "FAIL" if n else "OK", f"{n} alertas sem transação"))
+        out.append(Resultado("alertas_orfaos", "FAIL" if n else "OK", f"{n} alertas sem transação"))
     return out
 
 

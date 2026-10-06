@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -16,107 +19,666 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "panels": [
-    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "id": 10, "title": "Métricas Gerais", "type": "row" },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
-      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 10,
+      "title": "Métricas Gerais",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
       "id": 1,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
       "title": "Total Transações",
       "type": "stat",
-      "targets": [{ "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" }, "format": "table", "rawSql": "SELECT COUNT(*) AS \"total\" FROM transactions WHERE $__timeFilter(timestamp)", "refId": "A" }]
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS \"total\" FROM transactions WHERE $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 50 }] } }, "overrides": [] },
-      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 1 },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
       "id": 2,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
       "title": "Fraudes Detectadas",
       "type": "stat",
-      "targets": [{ "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" }, "format": "table", "rawSql": "SELECT COUNT(*) AS \"fraudes\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp)", "refId": "A" }]
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS \"fraudes\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 15 }] }, "unit": "percent" }, "overrides": [] },
-      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 1 },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 15
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
       "id": 3,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
       "title": "Taxa de Fraude",
       "type": "stat",
-      "targets": [{ "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" }, "format": "table", "rawSql": "SELECT ROUND(100.0 * SUM(CASE WHEN is_fraud THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 3) AS \"taxa_pct\" FROM transactions WHERE $__timeFilter(timestamp)", "refId": "A" }]
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "table",
+          "rawSql": "SELECT ROUND(100.0 * SUM(CASE WHEN is_fraud THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 3) AS \"taxa_pct\" FROM transactions WHERE $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 10000 }] }, "unit": "currencyBRL" }, "overrides": [] },
-      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 1 },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 10000
+              }
+            ]
+          },
+          "unit": "currencyBRL"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
       "id": 4,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
       "title": "Valor Total Fraudado",
       "type": "stat",
-      "targets": [{ "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" }, "format": "table", "rawSql": "SELECT COALESCE(SUM(valor), 0) AS \"valor_fraudado\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp)", "refId": "A" }]
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "table",
+          "rawSql": "SELECT COALESCE(SUM(valor), 0) AS \"valor_fraudado\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp)",
+          "refId": "A"
+        }
+      ]
     },
-    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 }, "id": 11, "title": "Gráficos Temporais", "type": "row" },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 11,
+      "title": "Gráficos Temporais",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
       "id": 5,
-      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
       "title": "Transações por Minuto",
       "type": "timeseries",
-      "targets": [{ "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" }, "format": "time_series", "rawSql": "SELECT $__timeGroup(timestamp, '1m') AS \"time\", COUNT(*) AS \"tx_por_min\" FROM transactions WHERE $__timeFilter(timestamp) GROUP BY 1 ORDER BY 1", "refId": "A" }]
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroup(timestamp, '1m') AS \"time\", COUNT(*) AS \"tx_por_min\" FROM transactions WHERE $__timeFilter(timestamp) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "id": 6,
-      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
       "title": "Fraudes por Minuto",
       "type": "timeseries",
-      "targets": [{ "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" }, "format": "time_series", "rawSql": "SELECT $__timeGroup(timestamp, '1m') AS \"time\", COUNT(*) AS \"fraudes_por_min\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp) GROUP BY 1 ORDER BY 1", "refId": "A" }]
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroup(timestamp, '1m') AS \"time\", COUNT(*) AS \"fraudes_por_min\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
     },
-    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 }, "id": 12, "title": "Análise por Regra", "type": "row" },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 17 },
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 12,
+      "title": "Análise por Regra",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "id": 14,
+      "title": "Saúde dos Dados",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "title": "Frescor — último dado",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "table",
+          "rawSql": "SELECT MAX(timestamp) AS \"ultimo_dado\" FROM transactions",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "title": "Volume — últimas 24h de dados",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS \"volume_24h\" FROM transactions WHERE timestamp > (SELECT MAX(timestamp) FROM transactions) - INTERVAL '24 hours'",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 17
+      },
       "id": 7,
-      "options": { "legend": { "displayMode": "list", "placement": "right" }, "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
       "title": "Alertas por Regra",
       "type": "piechart",
-      "targets": [{ "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" }, "format": "table", "rawSql": "SELECT r AS \"regra\", COUNT(*) AS \"alertas\" FROM fraud_alerts, LATERAL unnest(regras_ativadas) AS r WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 2 DESC", "refId": "A" }]
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "table",
+          "rawSql": "SELECT r AS \"regra\", COUNT(*) AS \"alertas\" FROM fraud_alerts, LATERAL unnest(regras_ativadas) AS r WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 2 DESC",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 17 },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 17
+      },
       "id": 8,
-      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
       "title": "Fraudes por Categoria",
       "type": "timeseries",
-      "targets": [{ "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" }, "format": "time_series", "rawSql": "SELECT $__timeGroup(timestamp, '5m') AS \"time\", categoria AS \"metric\", COUNT(*) AS \"value\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp) GROUP BY 1, 2 ORDER BY 1", "refId": "A" }]
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroup(timestamp, '5m') AS \"time\", categoria AS \"metric\", COUNT(*) AS \"value\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp) GROUP BY 1, 2 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
     },
     {
-      "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 17 },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_POSTGRES}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 17
+      },
       "id": 9,
-      "options": { "legend": { "displayMode": "list", "placement": "right" }, "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
       "title": "Fraudes por Dispositivo",
       "type": "piechart",
-      "targets": [{ "datasource": { "type": "postgres", "uid": "${DS_POSTGRES}" }, "format": "table", "rawSql": "SELECT dispositivo AS \"dispositivo\", COUNT(*) AS \"fraudes\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp) GROUP BY 1 ORDER BY 2 DESC", "refId": "A" }]
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_POSTGRES}"
+          },
+          "format": "table",
+          "rawSql": "SELECT dispositivo AS \"dispositivo\", COUNT(*) AS \"fraudes\" FROM transactions WHERE is_fraud AND $__timeFilter(timestamp) GROUP BY 1 ORDER BY 2 DESC",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["fraude", "streaming", "kafka", "postgres"],
+  "tags": [
+    "fraude",
+    "streaming",
+    "kafka",
+    "postgres"
+  ],
   "templating": {
     "list": [
       {
-        "current": { "selected": false, "text": "Postgres", "value": "Postgres" },
+        "current": {
+          "selected": false,
+          "text": "Postgres",
+          "value": "Postgres"
+        },
         "hide": 0,
         "includeAll": false,
         "multi": false,
@@ -130,11 +692,14 @@
       }
     ]
   },
-  "time": { "from": "2013-09-01T00:00:00.000Z", "to": "2013-09-03T00:00:00.000Z" },
+  "time": {
+    "from": "2013-09-01T00:00:00.000Z",
+    "to": "2013-09-03T00:00:00.000Z"
+  },
   "timepicker": {},
   "timezone": "America/Sao_Paulo",
   "title": "Fraud Detection - Monitoramento em Tempo Real",
   "uid": "fraud-detection-streaming",
-  "version": 2,
+  "version": 3,
   "weekStart": "monday"
 }

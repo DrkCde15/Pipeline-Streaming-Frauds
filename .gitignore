@@ -6,3 +6,4 @@ data/
 *.pkl
 models/*.pkl
 .pytest_cache/
+.vscode/

@@ -61,8 +61,11 @@ def test_to_ml_vector_v2_tem_30_dims():
 
 def test_sintetica_sem_v_features_erro_v2():
     tx = Transacao(
-        transaction_id="x", user_id=1, valor=10.0,
-        timestamp="2024-01-01T10:00:00", source="synthetic",
+        transaction_id="x",
+        user_id=1,
+        valor=10.0,
+        timestamp="2024-01-01T10:00:00",
+        source="synthetic",
     )
     with pytest.raises(ValueError):
         tx.to_ml_vector_v2()
@@ -70,8 +73,11 @@ def test_sintetica_sem_v_features_erro_v2():
 
 def test_validar_aponta_erros():
     tx = Transacao(
-        transaction_id="", user_id=0, valor=-5.0,
-        timestamp="nao-e-data", v_features=[1.0, 2.0],
+        transaction_id="",
+        user_id=0,
+        valor=-5.0,
+        timestamp="nao-e-data",
+        v_features=[1.0, 2.0],
     )
     erros = tx.validar()
     assert len(erros) >= 4
@@ -90,9 +96,13 @@ def test_from_dict_normaliza_naive_para_utc():
     """R3: timestamp naive vira aware UTC na fronteira."""
     from datetime import datetime
 
-    tx = Transacao.from_dict({
-        "transaction_id": "t1", "user_id": 1, "valor": 10.0,
-        "timestamp": "2024-01-01T10:00:00",  # naive, estilo sintético antigo
-    })
+    tx = Transacao.from_dict(
+        {
+            "transaction_id": "t1",
+            "user_id": 1,
+            "valor": 10.0,
+            "timestamp": "2024-01-01T10:00:00",  # naive, estilo sintético antigo
+        }
+    )
     assert datetime.fromisoformat(tx.timestamp).tzinfo is not None
     assert tx.validar() == []
