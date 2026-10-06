@@ -50,9 +50,23 @@ def decidir_alerta(
 
 class RuleEngine:
     """Motor de regras para detecção de fraudes."""
-    
-    def __init__(self) -> None:
-        """Inicializa o motor de regras."""
+
+    def __init__(self, limiar_alerta: float | None = None) -> None:
+        """Inicializa o motor de regras.
+
+        Args:
+            limiar_alerta: score mínimo p/ gerar alerta (R7). Sinais fracos
+                sozinhos (horario 1.0, dispositivo 1.2, valor 1.5) só somam;
+                disparam combinados (ex. 1.0+1.2=2.2) ou com sinal forte
+                (velocidade 2.0, geografico 2.5). Env LIMIAR_ALERTA, default 2.0.
+        """
+        import os
+
+        self.limiar_alerta = (
+            limiar_alerta
+            if limiar_alerta is not None
+            else float(os.getenv("LIMIAR_ALERTA", "2.0"))
+        )
         self.regras: list[Regra] = [
             Regra(
                 nome="velocidade",
@@ -77,7 +91,7 @@ class RuleEngine:
             Regra(
                 nome="dispositivo_novo",
                 descricao="Transação de dispositivo não registrado",
-                peso=1.2,
+                peso=0.8,  # R7: sinal mais fraco; sozinho ou +madrugada não alerta
             ),
         ]
         
@@ -238,8 +252,9 @@ class RuleEngine:
         if len(self.historico[user_id]) > 100:
             self.historico[user_id] = self.historico[user_id][-100:]
         
-        # Se alguma regra foi ativada, cria alerta
-        if regras_ativadas:
+        # R7: alerta só com evidência suficiente; sinal fraco sozinho soma
+        # score mas não dispara (ex. madrugada ou 1º uso isolados).
+        if regras_ativadas and score_total >= self.limiar_alerta:
             alerta = AlertasFraude(
                 transacao_id=transacao["transaction_id"],
                 regras_ativadas=regras_ativadas,
@@ -248,7 +263,7 @@ class RuleEngine:
             )
             self.alertas.append(alerta)
             return alerta
-        
+
         return None
     
     def obter_estatisticas(self) -> dict[str, Any]:

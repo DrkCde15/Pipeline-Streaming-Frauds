@@ -122,13 +122,18 @@ print(metricas)  # precision/recall/f1 no holdout 80/20
 print(ml.prever_v2(tx.to_dict()))
 ```
 
-Regras (ver `src/detectors/rule_engine.py`):
+Regras (ver `src/detectors/rule_engine.py`, pesos entre parênteses):
 
-- `velocidade` (peso 2.0): 5+ txs do mesmo user em 1 min
-- `valor_alto` (peso 1.5): valor > R$ 10.000
-- `geografico` (peso 2.5): países diferentes em 5 min
-- `horario_incomum` (peso 1.0): 00h-05h
-- `dispositivo_novo` (peso 1.2): primeiro uso do dispositivo
+- `velocidade` (2.0): 5+ txs do mesmo user em 1 min
+- `valor_alto` (1.5): valor > R$ 10.000
+- `geografico` (2.5): países diferentes em 5 min
+- `horario_incomum` (1.0): 00h-05h
+- `dispositivo_novo` (0.8): primeiro uso do dispositivo
+
+Alerta só com `score >= 2.0` (`LIMIAR_ALERTA`): sinal fraco isolado soma mas não dispara;
+sinais fortes (velocidade, geográfico) ou pares reais (ex. valor+madrugada) disparam.
+No replay do CSV (tudo de madrugada) isso derrubou a taxa de alerta de 100% para ~0%,
+deixando a detecção real com o ML v2.
 
 Modelo v1 (legado): RandomForest 8 features sintéticas. Modelo v2 (atual): RandomForest 200 árvores, `class_weight=balanced`, 30 features reais.
 

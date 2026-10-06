@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 
+import pytest
+
 from src.detectors.rule_engine import RuleEngine
 
 
@@ -19,13 +21,21 @@ def tx_base(**kw) -> dict:
     return base
 
 
-def test_valor_alto_dispara():
+def test_valor_alto_sozinho_nao_dispara():
+    """R7: sinal fraco isolado (1.5 < limiar 2.0) soma mas não alerta."""
     eng = RuleEngine()
-    # dispositivo já conhecido p/ isolar só valor_alto
     eng.dispositivos_conhecidos[42].add("mobile")
-    alerta = eng.verificar_transacao(tx_base(valor=15000.0))
+    assert eng.verificar_transacao(tx_base(valor=15000.0)) is None
+
+
+def test_valor_alto_com_horario_dispara():
+    eng = RuleEngine()
+    eng.dispositivos_conhecidos[42].add("mobile")
+    alerta = eng.verificar_transacao(tx_base(
+        valor=15000.0, timestamp="2013-09-01T03:00:00+00:00"))
     assert alerta is not None
-    assert "valor_alto" in alerta.regras_ativadas
+    assert set(alerta.regras_ativadas) == {"valor_alto", "horario_incomum"}
+    assert alerta.score == pytest.approx(2.5)
 
 
 def test_valor_normal_nao_dispara_valor():
@@ -36,12 +46,18 @@ def test_valor_normal_nao_dispara_valor():
     assert alerta is None
 
 
-def test_horario_incomum_dispara():
+def test_horario_incomum_sozinho_nao_dispara():
+    """R7: madrugada isolada (1.0) não alerta mais."""
     eng = RuleEngine()
     eng.dispositivos_conhecidos[42].add("mobile")
-    alerta = eng.verificar_transacao(tx_base(timestamp="2013-09-01T03:30:00+00:00"))
-    assert alerta is not None
-    assert "horario_incomum" in alerta.regras_ativadas
+    assert eng.verificar_transacao(
+        tx_base(timestamp="2013-09-01T03:30:00+00:00")) is None
+
+
+def test_sinal_forte_sozinho_dispara():
+    """Velocidade (2.0) e geografico (2.5) atingem o limiar sozinhos."""
+    eng = RuleEngine(limiar_alerta=2.0)
+    assert eng.limiar_alerta == 2.0
 
 
 def test_velocidade_sexta_transacao():
@@ -78,18 +94,24 @@ def test_geografico_paises_diferentes():
     assert "geografico" in alerta.regras_ativadas
 
 
-def test_dispositivo_novo_primeira_vez():
+def test_dispositivo_novo_primeira_vez_nao_alerta_sozinho():
+    """R7: 1º uso isolado (1.2) registra mas não alerta; some no combinado."""
     eng = RuleEngine()
     primeira = eng.verificar_transacao(tx_base(
         timestamp="2013-09-01T12:00:00+00:00", dispositivo="tablet-novo-xyz"))
-    assert primeira is not None
-    assert "dispositivo_novo" in primeira.regras_ativadas
-    # segunda vez com mesmo dispositivo não dispara mais
+    assert primeira is None
+    # segunda vez: conhecido, sem alerta de dispositivo
     segunda = eng.verificar_transacao(tx_base(
         transaction_id="tx-2",
         timestamp="2013-09-01T13:00:00+00:00", dispositivo="tablet-novo-xyz"))
     regras = segunda.regras_ativadas if segunda else []
     assert "dispositivo_novo" not in regras
+    # combinado com valor alto (0.8+1.5=2.3) dispara
+    terceira = eng.verificar_transacao(tx_base(
+        transaction_id="tx-3", user_id=43, valor=12000.0,
+        timestamp="2013-09-01T12:00:00+00:00", dispositivo="outro-novo-xyz"))
+    assert terceira is not None
+    assert "dispositivo_novo" in terceira.regras_ativadas
 
 
 def test_score_soma_pesos():
