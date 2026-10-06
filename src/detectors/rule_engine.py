@@ -27,6 +27,27 @@ class AlertasFraude:
     timestamp: str
 
 
+def decidir_alerta(
+    regras: list[str],
+    score_regras: float,
+    ml_prob: Optional[float],
+    limiar_ml: float = 0.5,
+) -> tuple[bool, float]:
+    """Combina regras + ML numa decisão (R2).
+
+    Dispara se alguma regra ativou OU se P(fraude) do ML >= limiar.
+    ML ausente (None, ex. sem modelo treinado) nunca dispara sozinho:
+    o fallback é regras. Score soma as duas evidências.
+
+    Returns:
+        (dispara, score_total)
+    """
+    ml_hit = ml_prob is not None and ml_prob >= limiar_ml
+    dispara = bool(regras) or ml_hit
+    score = score_regras + (ml_prob if ml_prob is not None else 0.0)
+    return dispara, score
+
+
 class RuleEngine:
     """Motor de regras para detecção de fraudes."""
     

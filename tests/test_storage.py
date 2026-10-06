@@ -39,4 +39,17 @@ def test_integracao_banco():
         assert salvar_transacao(conn, tx) is False  # idempotente
         salvar_alerta(conn, tx["transaction_id"], ["valor_alto"], 1.5)
     finally:
+        # Limpa p/ o teste ser repetível (R1: ID é determinístico por linha)
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM fraud_alerts WHERE transaction_id = %s",
+                (Transacao.from_creditcard_row(linha_csv(), idx=999)
+                 .to_dict()["transaction_id"],),
+            )
+            cur.execute(
+                "DELETE FROM transactions WHERE transaction_id = %s",
+                (Transacao.from_creditcard_row(linha_csv(), idx=999)
+                 .to_dict()["transaction_id"],),
+            )
+        conn.commit()
         conn.close()

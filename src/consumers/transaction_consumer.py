@@ -17,13 +17,20 @@ logger = logging.getLogger(__name__)
 
 
 class TransactionConsumer:
-    """Consumer de transações com validação, regras, Postgres e fraud-alerts."""
+    """Consumer de transações com validação, regras, ML, Postgres e fraud-alerts."""
 
-    def __init__(self, persist: bool = True) -> None:
+    def __init__(
+        self,
+        persist: bool = True,
+        ml: bool = True,
+        model_path: str = "models/fraud_rf_v2.pkl",
+    ) -> None:
         """Inicializa o consumer Kafka.
 
         Args:
             persist: salva em Postgres e publica fraud-alerts (desliga p/ demo sem DB)
+            ml: tenta ML v2 no serving (fallback p/ regras se indisponível)
+            model_path: artefato gerado por scripts/train_ml.py
         """
         self.consumer = KafkaConsumer(
             KAFKA_CONFIG.topic_transactions,
@@ -46,6 +53,7 @@ class TransactionConsumer:
         from src.detectors.rule_engine import RuleEngine
 
         self.rules = RuleEngine()
+        self._ml = self._init_ml(model_path) if ml else None
     
     def processar_transacao(self, transacao: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Processa uma transação individual.
@@ -120,10 +128,21 @@ class TransactionConsumer:
                     if self.persist:
                         self._salvar_no_banco(transacao_processada)
 
-                    # 2) Score via RuleEngine -> alerta em fraud-alerts + fraud_alerts
-                    alerta = self._checar_regras(transacao_processada)
-                    if alerta and self.persist:
-                        self._publicar_alerta(transacao_processada, alerta)
+                    # 2) Regras + ML v2 -> alerta em fraud-alerts + fraud_alerts
+                    # ML ausente/falho => fallback automático p/ regras (R2)
+                    from src.detectors.rule_engine import decidir_alerta
+
+                    alerta_rules = self._checar_regras(transacao_processada)
+                    ml_prob = self._checar_ml(transacao_processada)
+                    regras = (
+                        list(alerta_rules.regras_ativadas) if alerta_rules else []
+                    )
+                    score_rules = float(alerta_rules.score) if alerta_rules else 0.0
+                    dispara, score = decidir_alerta(regras, score_rules, ml_prob)
+                    if dispara and self.persist:
+                        self._publicar_alerta(
+                            transacao_processada, regras, score, ml_prob
+                        )
 
                     # Label original (ground truth do CSV) só p/ estatística
                     if transacao_processada["is_fraud"]:
@@ -182,7 +201,56 @@ class TransactionConsumer:
             logger.warning(f"RuleEngine falhou p/ {tx['transaction_id'][:8]}: {e}")
             return None
 
-    def _publicar_alerta(self, tx: dict[str, Any], alerta) -> None:
+    def _init_ml(self, model_path: str):
+        """Carrega ML v2 p/ o serving (R2). Ordem: artefato > treino > regras.
+
+        Sem artefato e com CSV presente, treina e salva (boot lento, uma vez).
+        Sem nenhum dos dois, retorna None e o serving segue só com regras.
+        """
+        import os
+        from pathlib import Path
+
+        model_path = os.getenv("MODEL_PATH", model_path)
+        csv_path = os.getenv("CREDITCARD_CSV", "data/raw/creditcard.csv")
+        try:
+            from src.detectors.ml_detector import MLDetector
+
+            det = MLDetector()
+            if Path(model_path).exists():
+                det._carregar_modelo(model_path)
+                logger.info(f"ML v2 carregado de {model_path}")
+            elif Path(csv_path).exists():
+                logger.warning("Artefato ML ausente; treinando v2 no boot (lento, uma vez)...")
+                det.treinar_com_csv(csv_path)
+                det.salvar_modelo(model_path)
+            else:
+                logger.warning("Sem modelo nem CSV: ML desabilitado, só regras.")
+                return None
+            if det.modelo_v2 is None:
+                return None
+            return det
+        except Exception as e:
+            logger.warning(f"ML indisponível, seguindo só com regras: {e}")
+            return None
+
+    def _checar_ml(self, tx: dict[str, Any]) -> Optional[float]:
+        """Retorna P(fraude) do ML ou None. Falha => desabilita p/ o resto do run."""
+        if self._ml is None:
+            return None
+        try:
+            return float(self._ml.prever_v2(tx)["probabilidade_fraude"])
+        except Exception as e:
+            logger.warning(f"ML falhou, desabilitado neste run (fallback regras): {e}")
+            self._ml = None
+            return None
+
+    def _publicar_alerta(
+        self,
+        tx: dict[str, Any],
+        regras: list[str],
+        score: float,
+        ml_prob: Optional[float] = None,
+    ) -> None:
         try:
             import json as _json
 
@@ -193,8 +261,9 @@ class TransactionConsumer:
             salvar_alerta(
                 self._pg_conn(),
                 tx["transaction_id"],
-                list(alerta.regras_ativadas),
-                float(alerta.score),
+                list(regras),
+                float(score),
+                ml_prob,
             )
             if self._alert_producer is None:
                 self._alert_producer = KafkaProducer(
@@ -205,8 +274,9 @@ class TransactionConsumer:
                 KAFKA_CONFIG.topic_fraud_alerts,
                 value={
                     "transaction_id": tx["transaction_id"],
-                    "regras": list(alerta.regras_ativadas),
-                    "score": float(alerta.score),
+                    "regras": list(regras),
+                    "score": float(score),
+                    "ml_probabilidade": ml_prob,
                     "valor": float(tx["valor"]),
                 },
             )
@@ -228,7 +298,8 @@ class TransactionConsumer:
         logger.info(f"   Taxa de fraude: {taxa_fraude:.2f}%")
         if self.persist:
             logger.info(f"   Persistidas Postgres: {self._persistidas}")
-            logger.info(f"   Alertas (regras): {self._alertas}")
+            logger.info(f"   Alertas (regras+ML): {self._alertas}")
+            logger.info(f"   ML v2: {'ativo' if self._ml is not None else 'inativo (só regras)'}")
         logger.info("=" * 50)
 
         try:

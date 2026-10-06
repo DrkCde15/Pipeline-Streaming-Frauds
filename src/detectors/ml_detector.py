@@ -167,35 +167,41 @@ class MLDetector:
         }
 
     def _carregar_modelo(self, path: str) -> None:
-        """Carrega modelo treinado de arquivo.
-        
+        """Carrega modelo treinado de arquivo (v1 e/ou v2, o que houver).
+
         Args:
             path: Caminho do arquivo do modelo
         """
         with open(path, "rb") as f:
             dados = pickle.load(f)
-            self.modelo = dados["modelo"]
-            self.scaler = dados["scaler"]
-        
+            self.modelo = dados.get("modelo")
+            self.scaler = dados.get("scaler")
+            self.modelo_v2 = dados.get("modelo_v2")
+            self.scaler_v2 = dados.get("scaler_v2")
+
         print(f"✅ Modelo carregado de {path}")
-    
+
     def salvar_modelo(self, path: str) -> None:
-        """Salva o modelo treinado em arquivo.
-        
+        """Salva os modelos treinados em arquivo (v1 e/ou v2).
+
         Args:
             path: Caminho para salvar o modelo
         """
-        if self.modelo is None or self.scaler is None:
-            raise ValueError("Modelo não treinado")
-        
+        if (self.modelo is None or self.scaler is None) and (
+            self.modelo_v2 is None or self.scaler_v2 is None
+        ):
+            raise ValueError("Nenhum modelo treinado")
+
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(path, "wb") as f:
             pickle.dump({
                 "modelo": self.modelo,
                 "scaler": self.scaler,
+                "modelo_v2": self.modelo_v2,
+                "scaler_v2": self.scaler_v2,
             }, f)
-        
+
         print(f"✅ Modelo salvo em {path}")
     
     def _extrair_features(self, transacao: dict[str, Any]) -> np.ndarray:

@@ -132,6 +132,14 @@ Regras (ver `src/detectors/rule_engine.py`):
 
 Modelo v1 (legado): RandomForest 8 features sintéticas. Modelo v2 (atual): RandomForest 200 árvores, `class_weight=balanced`, 30 features reais.
 
+### ML no serving (R2)
+
+```bash
+python scripts/train_ml.py   # gera models/fraud_rf_v2.pkl (gitignored, 8MB)
+```
+
+O consumer carrega o artefato no boot; sem ele, treina sozinho (lento, uma vez) ou segue só com regras. Por mensagem, dispara alerta se **regras OU `P(fraude) >= 0.5`**, e grava `ml_probabilidade` em `fraud_alerts`. Falha no ML nunca derruba o stream (fallback automático). Env: `MODEL_PATH`, `CREDITCARD_CSV`.
+
 ### Tópicos Kafka
 
 - `transactions` - transações no schema unificado
@@ -140,17 +148,20 @@ Modelo v1 (legado): RandomForest 8 features sintéticas. Modelo v2 (atual): Rand
 ## Estrutura
 
 ```
-config/kafka_config.py
-src/schemas/transaction.py   # schema canônico
+config/kafka_config.py       # lê KAFKA_* do .env
+config/db_config.py          # POSTGRES_DSN
+src/schemas/transaction.py   # schema canônico + IDs determinísticos
 src/producers/               # sintético + enviar_csv()
-src/consumers/               # validação + preservação V1..V28
-src/detectors/rule_engine.py
-src/detectors/ml_detector.py # v1 sintético + v2 real
+src/consumers/               # validação + regras + ML v2 + Postgres + fraud-alerts
+src/detectors/rule_engine.py # 5 regras + decidir_alerta()
+src/detectors/ml_detector.py # v1 sintético + v2 real (salvar/carregar)
+src/storage/                 # writer Postgres idempotente
+scripts/train_ml.py          # gera models/fraud_rf_v2.pkl
 db/schema.sql
 data/raw/                    # creditcard.csv (gitignored)
-grafana/dashboard.json       # espera Prometheus (exporter pendente)
-notebooks/01_analise_fraudes.ipynb  # EDA sintética (pendente migrar p/ CSV)
-tests/                       # em construção
+grafana/dashboard.json       # SQL direto no Postgres
+notebooks/01_analise_fraudes.ipynb  # EDA no CSV real
+tests/                       # 26 testes (pytest -q)
 ```
 
 ## Testes
@@ -159,7 +170,7 @@ tests/                       # em construção
 pytest tests/ -q
 ```
 
-Status v0.1: `tests/` contém só `__init__.py`. Validação atual é manual via `Transacao.validar()` + `py_compile`. Testes unitários de schema/regras são o próximo passo.
+Status: 26 testes (`pytest tests/ -q`), incluindo integração Postgres (pula sozinho sem DB).
 
 ## Roadmap v0.2
 
@@ -168,6 +179,7 @@ Status v0.1: `tests/` contém só `__init__.py`. Validação atual é manual via
 - [x] Writer Postgres no consumer + producer `fraud-alerts`
 - [x] Exporter Prometheus ou ajuste do dashboard para Postgres
 - [x] Migrar notebook para o CSV real
+- [x] R2: ML v2 no serving com fallback p/ regras (`scripts/train_ml.py` + `decidir_alerta`)
 
 ## Licença
 
