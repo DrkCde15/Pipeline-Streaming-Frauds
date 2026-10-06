@@ -31,6 +31,18 @@ CATEGORIAS_FALLBACK = [
 ]
 
 
+def normalizar_timestamp(ts: str) -> str:
+    """Garante ISO8601 com timezone (naive assume UTC).
+
+    Fronteira anti-mistura naive/aware (R3): o sintético gera naive e o
+    CSV gera aware; sem isso o RuleEngine levanta TypeError no stream misto.
+    """
+    dt = datetime.fromisoformat(ts)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
+
+
 @dataclass
 class Localizacao:
     """Localização da transação."""
@@ -96,7 +108,7 @@ class Transacao:
             transaction_id=str(d["transaction_id"]),
             user_id=int(d["user_id"]),
             valor=float(d["valor"]),
-            timestamp=str(d["timestamp"]),
+            timestamp=normalizar_timestamp(str(d["timestamp"])),
             is_fraud=bool(d.get("is_fraud", False)),
             moeda=str(d.get("moeda", "BRL")),
             localizacao=localizacao,
@@ -127,7 +139,18 @@ class Transacao:
         is_fraud = bool(int(row["Class"]))
         v_features = [float(row[f"V{i}"]) for i in range(1, 29)]
 
+        if base_time.tzinfo is None:
+            base_time = base_time.replace(tzinfo=timezone.utc)
         ts = (base_time + timedelta(seconds=time_sec)).isoformat()
+
+        # ID determinístico do conteúdo: re-replay da mesma linha gera o
+        # mesmo transaction_id, então o ON CONFLICT do Postgres + o
+        # group_id do Kafka deduplicam em vez de inflar counts (R1).
+        chave = "|".join([
+            str(row["Time"]), str(row["Amount"]), str(row["Class"]),
+            *[str(row[f"V{i}"]) for i in range(1, 29)],
+        ])
+        tx_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"creditcard_csv:{chave}"))
 
         # CSV não tem user: agrupa de 200 em 200 p/ permitir
         # testar velocidade/geográfico sem pulverizar em 284k usuários.
@@ -140,7 +163,7 @@ class Transacao:
         categoria = CATEGORIAS_FALLBACK[idx % len(CATEGORIAS_FALLBACK)]
 
         return cls(
-            transaction_id=str(uuid.uuid4()),
+            transaction_id=tx_id,
             user_id=user_id,
             valor=amount,
             timestamp=ts,

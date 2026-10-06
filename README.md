@@ -89,6 +89,10 @@ python -m src.producers.transaction_producer
 python -m src.consumers.transaction_consumer
 ```
 
+Nota (R11): o consumer sai sozinho após 10s sem mensagens (`consumer_timeout_ms=10000`).
+Para drenar o log inteiro, repita a chamada ou use `TransactionConsumer().executar(max_transacoes=5000)`.
+Offsets têm commit manual, então cada run avança de onde parou.
+
 Validação isolada (sem Kafka):
 
 ```python

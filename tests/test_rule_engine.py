@@ -100,3 +100,21 @@ def test_score_soma_pesos():
     assert alerta is not None
     esperado = sum(pesos[r] for r in alerta.regras_ativadas)
     assert alerta.score == esperado
+
+
+def test_stream_misto_naive_e_aware():
+    """R3: sintético (naive) + CSV (aware) no mesmo user não quebra."""
+    eng = RuleEngine()
+    eng.dispositivos_conhecidos[11].add("mobile")
+    eng.verificar_transacao(tx_base(
+        transaction_id="m-1", user_id=11, dispositivo="mobile",
+        timestamp="2013-09-01T12:00:00",  # naive, produtor sintético antigo
+        localizacao={"cidade": "São Paulo", "pais": "BR"},
+    ))
+    alerta = eng.verificar_transacao(tx_base(
+        transaction_id="m-2", user_id=11, dispositivo="mobile",
+        timestamp="2013-09-01T12:03:00+00:00",  # aware, CSV
+        localizacao={"cidade": "Londres", "pais": "GB"},
+    ))
+    assert alerta is not None
+    assert "geografico" in alerta.regras_ativadas

@@ -2,6 +2,7 @@
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from kafka import KafkaConsumer
@@ -80,7 +81,7 @@ class TransactionConsumer:
             "source": d.get("source", "synthetic"),
             "time_original": d.get("time_original"),
             "v_features": d.get("v_features"),
-            "processed_at": __import__("datetime").datetime.utcnow().isoformat(),
+            "processed_at": datetime.now(timezone.utc).isoformat(),
         }
         # Mantém V1..V28 achatadas se existirem (compat Postgres)
         for i in range(1, 29):

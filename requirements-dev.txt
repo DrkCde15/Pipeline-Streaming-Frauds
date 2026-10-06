@@ -1,0 +1,7 @@
+# Dev + notebooks — fora do runtime.
+# Instalação: pip install -r requirements-dev.txt
+
+pytest>=8.0
+matplotlib>=3.8
+seaborn>=0.13
+jupyter>=1.0

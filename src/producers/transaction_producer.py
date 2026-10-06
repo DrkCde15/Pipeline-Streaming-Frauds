@@ -3,7 +3,7 @@
 import json
 import random
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from kafka import KafkaProducer
@@ -50,7 +50,7 @@ def gerar_transacao_fraudulenta() -> dict[str, Any]:
         "user_id": random.randint(1, 1000),
         "valor": round(random.uniform(5000, 50000), 2),
         "moeda": "BRL",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "localizacao": {
             "cidade": local["cidade"],
             "pais": local["pais"],
@@ -72,7 +72,7 @@ def gerar_transacao_normal() -> dict[str, Any]:
         "user_id": random.randint(1, 1000),
         "valor": round(random.uniform(10, 2000), 2),
         "moeda": "BRL",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "localizacao": {
             "cidade": local["cidade"],
             "pais": local["pais"],

@@ -75,3 +75,24 @@ def test_validar_aponta_erros():
     )
     erros = tx.validar()
     assert len(erros) >= 4
+
+
+def test_replay_id_deterministico():
+    """R1: mesma linha do CSV gera sempre o mesmo ID (re-replay deduplica)."""
+    a = Transacao.from_creditcard_row(linha_csv_fraud(), idx=0)
+    b = Transacao.from_creditcard_row(linha_csv_fraud(), idx=999)
+    assert a.transaction_id == b.transaction_id
+    c = Transacao.from_creditcard_row(linha_csv_normal(), idx=0)
+    assert a.transaction_id != c.transaction_id
+
+
+def test_from_dict_normaliza_naive_para_utc():
+    """R3: timestamp naive vira aware UTC na fronteira."""
+    from datetime import datetime
+
+    tx = Transacao.from_dict({
+        "transaction_id": "t1", "user_id": 1, "valor": 10.0,
+        "timestamp": "2024-01-01T10:00:00",  # naive, estilo sintético antigo
+    })
+    assert datetime.fromisoformat(tx.timestamp).tzinfo is not None
+    assert tx.validar() == []

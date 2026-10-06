@@ -1,7 +1,7 @@
 """Motor de regras para detecção de fraudes."""
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from collections import defaultdict
@@ -178,6 +178,17 @@ class RuleEngine:
         Returns:
             AlertasFraude se alguma regra foi ativada, None caso contrário
         """
+        # Fronteira anti-mistura naive/aware (R3): normaliza antes de comparar.
+        try:
+            ts = datetime.fromisoformat(transacao["timestamp"])
+            if ts.tzinfo is None:
+                transacao = {
+                    **transacao,
+                    "timestamp": ts.replace(tzinfo=timezone.utc).isoformat(),
+                }
+        except (KeyError, ValueError):
+            pass
+
         regras_ativadas: list[str] = []
         score_total = 0.0
         
@@ -244,7 +255,7 @@ def main() -> None:
         "transaction_id": "abc-123",
         "user_id": 42,
         "valor": 15000.00,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "localizacao": {"cidade": "São Paulo", "pais": "BR"},
         "dispositivo": "mobile",
         "categoria": "compras",

@@ -7,6 +7,7 @@ from .transaction import (
     V_FEATURES,
     Localizacao,
     Transacao,
+    normalizar_timestamp,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "CATEGORIAS_FALLBACK",
     "Localizacao",
     "Transacao",
+    "normalizar_timestamp",
 ]
